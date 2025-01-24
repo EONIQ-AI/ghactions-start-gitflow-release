@@ -84,6 +84,9 @@ runs:
       if: "${{ inputs.precommit_run != '' }}"
       shell: bash
       run: "${{ inputs.precommit_run }}"
+      env:
+        version: "${{ inputs.version }}"
+        tag_prefix: "${{ inputs.tag_prefix }}"
     - id: commit
       if: "${{ inputs.precommit_run != '' }}"
       shell: bash
