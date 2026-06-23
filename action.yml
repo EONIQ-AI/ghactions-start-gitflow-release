@@ -54,14 +54,27 @@ runs:
         # Fail on errors, and strictly interpret shell code
         set -eu
 
+        # Helpers: check the local checkout AND the remote. The checkout is
+        # usually shallow / single-branch, so a ref can exist on the remote
+        # while being absent locally. Validating local-only lets the later
+        # push collide with a pre-existing remote ref, which fails with a
+        # cryptic "(fetch first)" / "bad line length character" error instead
+        # of the clear message below.
+        ref_exists() {
+          # $1 = full ref (e.g. refs/heads/release/1.0.0 or refs/tags/v1.0.0)
+          git rev-parse --verify --quiet "$1" >/dev/null 2>&1 && return 0
+          git ls-remote --exit-code origin "$1" >/dev/null 2>&1 && return 0
+          return 1
+        }
+
         # Perform sanity checks
-        if git rev-parse "$RELEASE_TAG" >/dev/null 2>&1; then
+        if ref_exists "refs/tags/$RELEASE_TAG"; then
           echo "::error invalid version: ${{ inputs.version }}: tag '$RELEASE_TAG' already exists"
           exit 1
-        elif git rev-parse "$RELEASE_BRANCH" >/dev/null 2>&1; then
+        elif ref_exists "refs/heads/$RELEASE_BRANCH"; then
           echo "::error invalid version: ${{ inputs.version }}: branch '$RELEASE_BRANCH' already exists"
           exit 1
-        elif git rev-parse "$HOTFIX_BRANCH" >/dev/null 2>&1; then
+        elif ref_exists "refs/heads/$HOTFIX_BRANCH"; then
           echo "::error invalid version: ${{ inputs.version }}: branch '$HOTFIX_BRANCH' exists"
           exit 1
         fi
